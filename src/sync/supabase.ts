@@ -26,7 +26,8 @@ export async function saveServerConfig(url: string, key: string) {
   // Connect 창의 .env.local 두 줄을 통째로 붙여넣어도 알아서 골라낸다
   const blob = url + "\n" + key;
   const u = blob.match(/https:\/\/[a-z0-9-]+\.supabase\.co/); if (u) url = u[0];
-  const k = blob.match(/sb_publishable_[A-Za-z0-9_-]+|eyJ[A-Za-z0-9._-]{40,}/); if (k) key = k[0];
+  // JWT(eyJ…)가 있으면 그걸 우선. 앞에 "sb_publishable_" 같은 글자가 잘못 붙어도 걸러낸다
+  const k = blob.match(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/) || blob.match(/sb_publishable_[A-Za-z0-9_-]+/); if (k) key = k[0];
   url = url.trim().replace(/\/+$/, ""); key = key.trim();
   if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url)) throw new Error("주소는 https://xxxx.supabase.co 모양이어야 해요");
   if (key.length < 20) throw new Error("키가 너무 짧아요. publishable 또는 anon 키를 붙여넣어요");
