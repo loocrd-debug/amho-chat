@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "암호쳇",
+    "slug": "amho-chat",
+    "scheme": "amho",
+    "version": "0.2.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0E0E10",
+    "splash": { "image": "./assets/mascot/cat-shh.png", "resizeMode": "contain", "backgroundColor": "#0E0E10" },
+    "ios": {
+      "bundleIdentifier": "com.doctorcool.amho", "supportsTablet": false,
+      "infoPlist": { "NSFaceIDUsageDescription": "암호 해독에 Face ID를 사용해요.", "NSCameraUsageDescription": "초대 QR을 찍을 때만 카메라를 써요." }
+    },
+    "android": {
+      "package": "com.doctorcool.amho",
+      "adaptiveIcon": { "foregroundImage": "./assets/mascot/cat-flat.png", "backgroundColor": "#0E0E10" },
+      "permissions": ["CAMERA", "USE_BIOMETRIC", "POST_NOTIFICATIONS"]
+    },
+    "plugins": [
+      "expo-font",
+      ["expo-local-authentication", { "faceIDPermission": "암호 해독에 Face ID를 사용해요." }],
+      ["expo-camera", { "cameraPermission": "초대 QR을 찍을 때만 카메라를 써요." }],
+      ["expo-notifications", { "color": "#FF6A3D" }]
+    ],
+    "extra": { "eas": { "projectId": "YOUR-EAS-PROJECT-ID" } }
+  }
+}
