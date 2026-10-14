@@ -9,7 +9,14 @@ python3 - <<'EOF'
 p = "docs/index.html"; s = open(p, encoding="utf-8").read()
 s = s.replace('<html lang="en">', '<html lang="ko">')
 inject = ('<script>try{if(location.hash&&location.hash.indexOf("#j-")===0){localStorage.setItem("amho.pendingInvite",location.hash.slice(1));}}catch(e){}</script>'
-          '<style>html,body{overflow-x:hidden;max-width:100vw;background:#0E0E10}</style>')
+          '<style>html,body{overflow-x:hidden;max-width:100vw;background:#0E0E10}</style>'
+          '<link rel="manifest" href="/amho-chat/manifest.webmanifest">'
+          '<meta name="theme-color" content="#0E0E10">'
+          '<meta name="apple-mobile-web-app-capable" content="yes">'
+          '<meta name="mobile-web-app-capable" content="yes">'
+          '<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">'
+          '<meta name="apple-mobile-web-app-title" content="암호쳇">'
+          '<link rel="apple-touch-icon" href="/amho-chat/icons/icon-180.png">')
 if "amho.pendingInvite" not in s: s = s.replace("</head>", inject + "</head>", 1)
 open(p, "w", encoding="utf-8").write(s)
 EOF

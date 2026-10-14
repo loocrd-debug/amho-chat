@@ -8,6 +8,7 @@ import * as Clipboard from "expo-clipboard";
 import { inviteLink } from "../sync/invite";
 import { checkServer } from "../sync/supabase";
 import { APP_VERSION } from "../theme";
+import { enableWebPush, pushPermission, pushSupported, isIOS, isStandalone } from "../sync/webpush";
 
 export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
   const { settings, setSettings, burnAll, serverOn, serverCfg, setServer, clearServer, partner, leave, error } = useStore();
@@ -73,6 +74,13 @@ export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
           </View>
         )}
 
+        {pushSupported() && (
+          <>
+            <Eyebrow>알림</Eyebrow>
+            <PushRow room={room} uid={settings.uid} onToast={onToast} />
+          </>
+        )}
+
         <Eyebrow>내 이름</Eyebrow>
         <View style={{ flexDirection: "row", gap: 8 }}>
           <TextInput value={name} onChangeText={setName} maxLength={10} placeholder="요원 이름" placeholderTextColor={color.inkFaint} style={s.input} />
@@ -90,6 +98,21 @@ export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
       </ScrollView>
       <InviteSheet open={invite} onClose={() => setInvite(false)} onToast={onToast} />
       <JoinSheet open={join} onClose={() => setJoin(false)} onToast={onToast} />
+    </View>
+  );
+}
+
+function PushRow({ room, uid, onToast }: { room: { id: string } | null; uid: string; onToast: (t: string) => void }) {
+  const [perm, setPerm] = useState(pushPermission());
+  const [busy, setBusy] = useState(false);
+  const needHome = isIOS() && !isStandalone();
+  const sub = perm === "granted" ? "앱을 닫아도 숫자만 적힌 알림이 와요"
+    : needHome ? "아이폰: 사파리 공유 버튼 → \"홈 화면에 추가\" → 그 아이콘으로 열고 여기서 켜요"
+    : perm === "denied" ? "브라우저 설정에서 이 사이트 알림을 허용해 주세요" : "켜면 앱을 닫아도 숫자만 적힌 알림이 와요";
+  return (
+    <View style={s.row}>
+      <View style={{ flex: 1 }}><Text style={[type.body, { color: color.ink }]}>{perm === "granted" ? "알림 켜짐" : "앱 닫아도 알림 받기"}</Text><Muted>{sub}</Muted></View>
+      {perm !== "granted" && <Button label={busy ? "…" : "켜기"} variant="ghost" disabled={busy || !room || needHome} onPress={async () => { if (!room) return; setBusy(true); const r = await enableWebPush(room.id, uid); setBusy(false); setPerm(pushPermission()); onToast(r.ok ? "알림을 켰어요" : r.reason || "실패"); }} style={{ height: 40 }} />}
     </View>
   );
 }

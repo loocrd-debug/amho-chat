@@ -26,4 +26,4 @@ export const TTL_MS = 10 * 60 * 1000;   // 메시지 소멸
 export const REVEAL_MS = 2000;          // 해독·귓속말 노출 시간
 export const FREE_SLOTS = 12;           // 무료 코드 칸
 
-export const APP_VERSION = "0.4.3";
+export const APP_VERSION = "0.5.0";

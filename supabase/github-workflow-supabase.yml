@@ -1,0 +1,29 @@
+# Supabase Edge Function 자동 배포: supabase/functions 가 바뀌어 main에 올라오면 실행
+# 필요한 GitHub Secrets (저장소 Settings > Secrets and variables > Actions):
+#   SUPABASE_ACCESS_TOKEN  — supabase.com/dashboard/account/tokens 에서 발급
+#   VAPID_PRIVATE_KEY      — 웹 푸시 개인키 (공개키는 .env의 EXPO_PUBLIC_VAPID_PUBLIC_KEY)
+name: Deploy Supabase function
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/functions/**", ".github/workflows/supabase.yml"]
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: stajekslsvmnehznamyw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Set function secrets (VAPID)
+        run: >
+          supabase secrets set --project-ref "$PROJECT_REF"
+          VAPID_PUBLIC_KEY=BHBJsUk0K7zLmsO1txJIwa5A6TZvNypNr92BL9UGGk1hCS6OA6M8IFTiu3oHPaMzJhtVa2RaqP7P3Aw2a7zXvR0
+          VAPID_PRIVATE_KEY="${{ secrets.VAPID_PRIVATE_KEY }}"
+          VAPID_SUBJECT=mailto:loocrd@gmail.com
+      - name: Deploy notify
+        run: supabase functions deploy notify --project-ref "$PROJECT_REF" --no-verify-jwt

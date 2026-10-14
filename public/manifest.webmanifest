@@ -1,0 +1,14 @@
+{
+  "name": "암호쳇",
+  "short_name": "암호쳇",
+  "description": "둘만 아는 숫자 하나.",
+  "start_url": "/amho-chat/",
+  "scope": "/amho-chat/",
+  "display": "standalone",
+  "background_color": "#0E0E10",
+  "theme_color": "#0E0E10",
+  "icons": [
+    { "src": "/amho-chat/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/amho-chat/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

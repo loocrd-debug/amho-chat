@@ -55,3 +55,16 @@ create policy "anon rw invites" on invites for all to anon using (true) with che
 
 -- Realtime: signals 테이블 변경을 구독할 수 있게
 alter publication supabase_realtime add table signals;
+
+-- (0.5.0 추가) 웹 푸시 구독. 홈 화면 앱(PWA)이 알림을 받으려면 필요. 브라우저가 준 주소만 저장하고 뜻은 없다.
+create table if not exists push_subs (
+  endpoint text primary key,
+  room_id text not null,
+  uid text not null,
+  sub jsonb not null,
+  updated_at timestamptz default now()
+);
+create index if not exists push_subs_room on push_subs (room_id);
+alter table push_subs enable row level security;
+drop policy if exists "anon rw push_subs" on push_subs;
+create policy "anon rw push_subs" on push_subs for all to anon using (true) with check (true);

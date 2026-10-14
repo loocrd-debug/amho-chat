@@ -114,6 +114,7 @@ export class SupabaseTransport implements Transport {
     const row = { id, room_id: this.roomId, from_uid: this.uid, kind: msg.type, payload: msg.type === "code" ? msg.key : seal(msg.text, this.key) };
     await this.ch.send({ type: "broadcast", event: "signal", payload: { ...row, at: Date.now() } });
     await sb()!.from("signals").insert(row).then(() => {}, () => {}); // 테이블이 없으면 실시간 중계만
+    sb()!.functions.invoke("notify", { body: row }).then(() => {}, () => {}); // 상대 폰에 숫자만 알림 (함수가 없으면 조용히 무시)
   }
   onMessage(cb: (m: Message) => void) { this.msgL.add(cb); return () => { this.msgL.delete(cb); }; }
   onPresence(cb: (o: { uid: string; name: string }[]) => void) { this.preL.add(cb); return () => { this.preL.delete(cb); }; }

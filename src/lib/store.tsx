@@ -6,6 +6,7 @@ import { LocalTransport, SupabaseTransport, type Transport } from "../sync/trans
 import { serverReady, loadServerConfig, saveServerConfig, clearServerConfig, getServerConfig } from "../sync/supabase";
 import { createRoom, joinRoom, leaveRoom, parseInvite, redeemCode, type Room } from "../sync/invite";
 import { registerPush } from "../sync/push";
+import { refreshWebPush, clearShownNotifications } from "../sync/webpush";
 import { TTL_MS, FREE_SLOTS } from "../theme";
 import type { Code, Message, Settings, BookEvent } from "./types";
 
@@ -79,7 +80,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     tRef.current?.close(); tRef.current = null; setPartner(null);
     if (!(settings.room && serverReady())) return;
     let t: Transport;
-    try { t = new SupabaseTransport(settings.room.id, settings.room.key, settings.uid, settings.name || "요원"); registerPush(settings.room.id, settings.uid); }
+    try { t = new SupabaseTransport(settings.room.id, settings.room.key, settings.uid, settings.name || "요원"); registerPush(settings.room.id, settings.uid); refreshWebPush(settings.room.id, settings.uid); }
     catch (e: any) { setError(e.message); return; }
     tRef.current = t;
     const u1 = t.onMessage((m) => setMsgs((p) => (p.some((x) => x.id === m.id) ? p : [...p, m])));
@@ -134,6 +135,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (!ready || !inviteChecked || !settings.name || settings.room || !serverReady()) return;
     createRoom(settings.uid, settings.name).then((room) => setS((s) => (s.room ? s : { ...s, room }))).catch(() => {});
   }, [ready, inviteChecked, settings.name, settings.room?.id, serverTick]);
+
+  // 앱을 보고 있으면 쌓인 알림을 지운다 (웹)
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const f = () => { if (document.visibilityState === "visible") clearShownNotifications(); };
+    f(); document.addEventListener("visibilitychange", f); return () => document.removeEventListener("visibilitychange", f);
+  }, []);
 
   // 10분 소멸
   useEffect(() => { const t = setInterval(() => setMsgs((p) => p.filter((x) => Date.now() - x.at < TTL_MS)), 15000); return () => clearInterval(t); }, []);
