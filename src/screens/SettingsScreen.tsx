@@ -6,12 +6,13 @@ import { Button, Eyebrow, Title, Muted, Chip } from "../components/ui";
 import { InviteSheet, JoinSheet } from "./InviteSheet";
 import * as Clipboard from "expo-clipboard";
 import { inviteLink } from "../sync/invite";
+import { moveLink } from "../sync/move";
 import { checkServer } from "../sync/supabase";
 import { APP_VERSION } from "../theme";
 import { enableWebPush, pushPermission, pushSupported, isIOS, isStandalone } from "../sync/webpush";
 
 export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
-  const { settings, setSettings, burnAll, serverOn, serverCfg, setServer, clearServer, partner, leave, error } = useStore();
+  const { settings, codes, setSettings, burnAll, serverOn, serverCfg, setServer, clearServer, partner, leave, error } = useStore();
   const [name, setName] = useState(settings.name);
   const [srvUrl, setSrvUrl] = useState(serverCfg?.url ?? "");
   const [srvKey, setSrvKey] = useState(serverCfg?.key ?? "");
@@ -58,6 +59,12 @@ export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
           </View>
         )}
         {error && <Muted style={{ color: color.danger }}>{error}</Muted>}
+
+        <Eyebrow>다른 브라우저 · 홈 화면 앱으로 옮기기</Eyebrow>
+        <View style={s.row}>
+          <View style={{ flex: 1 }}><Text style={[type.body, { color: color.ink }]}>내 이름·방·설정집 옮기기</Text><Muted>링크를 복사해 사파리 주소창이나 홈 화면 앱의 "초대 받기"에 붙여넣으면 그대로 복원돼요. 폰 안에서만 움직여요.</Muted></View>
+          <Button label="링크 복사" variant="ghost" onPress={async () => { await Clipboard.setStringAsync(moveLink(settings, codes)); onToast("복사했어요. 옮길 곳에 붙여넣으세요"); }} style={{ height: 40 }} />
+        </View>
 
         <Eyebrow>서버 연결</Eyebrow>
         {serverOn && !srvOpen ? (

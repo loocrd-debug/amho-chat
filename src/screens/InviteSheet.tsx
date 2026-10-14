@@ -58,7 +58,7 @@ export function JoinSheet({ open, onClose, onToast }: { open: boolean; onClose: 
       )}
       <Eyebrow>초대 링크 붙여넣기</Eyebrow>
       <View style={{ flexDirection: "row", gap: 8 }}>
-        <TextInput value={link} onChangeText={setLink} autoCapitalize="none" autoCorrect={false} placeholder="받은 초대 링크를 통째로 붙여넣기" placeholderTextColor={color.inkFaint} style={[s.input, { letterSpacing: 0, textAlign: "left", fontSize: 13 }]} />
+        <TextInput value={link} onChangeText={setLink} autoCapitalize="none" autoCorrect={false} placeholder="초대 링크 또는 옮기기 링크를 통째로 붙여넣기" placeholderTextColor={color.inkFaint} style={[s.input, { letterSpacing: 0, textAlign: "left", fontSize: 13 }]} />
         <Button label="접선" onPress={() => joinByLink(link).then(done)} disabled={link.length < 20} />
       </View>
       <Eyebrow>또는 6자리 코드</Eyebrow>

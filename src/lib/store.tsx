@@ -6,6 +6,7 @@ import { LocalTransport, SupabaseTransport, type Transport } from "../sync/trans
 import { serverReady, loadServerConfig, saveServerConfig, clearServerConfig, getServerConfig } from "../sync/supabase";
 import { createRoom, joinRoom, leaveRoom, parseInvite, redeemCode, type Room } from "../sync/invite";
 import { registerPush } from "../sync/push";
+import { parseMove } from "../sync/move";
 import { refreshWebPush, clearShownNotifications } from "../sync/webpush";
 import { TTL_MS, FREE_SLOTS } from "../theme";
 import type { Code, Message, Settings, BookEvent } from "./types";
@@ -120,9 +121,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       let token: string | null = null;
       try { token = (await AsyncStorage.getItem("amho.pendingInvite")) || null; } catch {}
-      if (typeof window !== "undefined" && window.location?.hash?.startsWith("#j-")) { token = window.location.hash.slice(1); try { window.history.replaceState(null, "", window.location.pathname); } catch {} }
+      if (typeof window !== "undefined" && (window.location?.hash?.startsWith("#j-") || window.location?.hash?.startsWith("#m-"))) { token = window.location.hash.slice(1); try { window.history.replaceState(null, "", window.location.pathname); } catch {} }
       const initial = await Linking.getInitialURL().catch(() => null);
-      if (!token && initial && parseInvite(initial)) token = initial;
+      if (!token && initial && (parseInvite(initial) || parseMove(initial))) token = initial;
       if (token) { pendingInvite.current = token; await joinByLink(token); try { await AsyncStorage.removeItem("amho.pendingInvite"); } catch {} }
       setInviteChecked(true);
     })();
@@ -153,6 +154,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const joinByLink = async (url: string) => {
+    // 서랍 옮기기 링크: 이름·방·설정집을 통째로 복원
+    const mv = parseMove(url);
+    if (mv) {
+      setCodes((c) => { const n = { ...c }; mv.codes.forEach((x) => { if (!n[x.key]) n[x.key] = { key: x.key, meaning: x.meaning, used: 0, createdAt: Date.now(), confirmedBy: [mv.uid], status: "confirmed", by: mv.uid }; }); return n; });
+      setS((s) => ({ ...s, name: mv.name || s.name, uid: mv.uid || s.uid, room: mv.room ?? s.room }));
+      if (mv.room) { try { await joinRoom(mv.room, mv.uid, mv.name || "요원"); } catch {} }
+      setError(null); return true;
+    }
     const room = parseInvite(url); if (!room) return false;
     if (settings.room?.id === room.id) return true;
     try { await joinRoom(room, settings.uid, settings.name || "요원"); setS((s) => ({ ...s, room })); setError(null); return true; } catch (e: any) { setError(e.message); return false; }
