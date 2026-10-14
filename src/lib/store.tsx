@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from "r
 import * as Linking from "expo-linking";
 import { storage, uid as mkId } from "./storage";
 import { LocalTransport, SupabaseTransport, type Transport } from "../sync/transport";
-import { serverReady } from "../sync/supabase";
+import { serverReady, loadServerConfig, saveServerConfig, clearServerConfig, getServerConfig } from "../sync/supabase";
 import { createRoom, joinRoom, leaveRoom, parseInvite, redeemCode, type Room } from "../sync/invite";
 import { registerPush } from "../sync/push";
 import { TTL_MS, FREE_SLOTS } from "../theme";
@@ -23,6 +23,9 @@ type Store = {
   burnAll: () => void;
   // 파트너
   serverOn: boolean;
+  serverCfg: { url: string; key: string } | null;
+  setServer: (url: string, key: string) => Promise<void>;
+  clearServer: () => Promise<void>;
   partner: { uid: string; name: string } | null;
   startRoom: () => Promise<Room>;
   joinByLink: (url: string) => Promise<boolean>;
@@ -41,12 +44,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [msgs, setMsgs] = useState<Message[]>([]);
   const [partner, setPartner] = useState<{ uid: string; name: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [serverTick, setServerTick] = useState(0);
   const codesRef = useRef(codes); codesRef.current = codes;
   const tRef = useRef<Transport | null>(null);
 
   // 불러오기
   useEffect(() => {
     (async () => {
+      await loadServerConfig();
       const [c, m, s] = await Promise.all([storage.loadCodes(), storage.loadMsgs(), storage.loadSettings()]);
       setCodes(c); setMsgs(m.filter((x) => Date.now() - x.at < TTL_MS)); if (s) setS((d) => ({ ...d, ...s, room: s.room ?? null })); setReady(true);
     })();
@@ -68,7 +73,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const u1 = t.onMessage((m) => setMsgs((p) => (p.some((x) => x.id === m.id) ? p : [...p, m])));
     const u2 = t.onPresence((o) => setPartner(o[0] ?? null));
     return () => { u1(); u2(); t.close(); };
-  }, [ready, settings.room?.id, settings.uid]);
+  }, [ready, settings.room?.id, settings.uid, serverTick]);
 
   // 초대 링크로 열렸을 때
   useEffect(() => {
@@ -107,6 +112,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     burn: (id) => setMsgs((p) => p.filter((x) => x.id !== id)),
     burnAll: () => { setMsgs([]); storage.wipeMsgs(); },
     serverOn: serverReady(),
+    serverCfg: getServerConfig(),
+    setServer: async (url, key) => { await saveServerConfig(url, key); setError(null); setServerTick((t) => t + 1); },
+    clearServer: async () => { await clearServerConfig(); setS((s) => ({ ...s, room: null })); setServerTick((t) => t + 1); },
     partner,
     startRoom: async () => { const room = await createRoom(settings.uid, settings.name || "요원"); setS((s) => ({ ...s, room })); return room; },
     joinByLink,

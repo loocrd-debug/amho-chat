@@ -2,7 +2,7 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
-import { supabase } from "./supabase";
+import { supabase as sb } from "./supabase";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({ shouldShowAlert: true, shouldPlaySound: false, shouldSetBadge: false, shouldShowBanner: true, shouldShowList: true }),
@@ -10,13 +10,13 @@ Notifications.setNotificationHandler({
 
 export async function registerPush(roomId: string, uid: string): Promise<string | null> {
   try {
-    if (!Device.isDevice || !supabase) return null;
+    if (!Device.isDevice || !sb()) return null;
     if (Platform.OS === "android") await Notifications.setNotificationChannelAsync("signal", { name: "신호", importance: Notifications.AndroidImportance.HIGH, vibrationPattern: [0, 120] });
     const { status: cur } = await Notifications.getPermissionsAsync();
     const status = cur === "granted" ? cur : (await Notifications.requestPermissionsAsync()).status;
     if (status !== "granted") return null;
     const token = (await Notifications.getExpoPushTokenAsync()).data;
-    await supabase.from("room_members").update({ push_token: token }).eq("room_id", roomId).eq("uid", uid);
+    await sb()!.from("room_members").update({ push_token: token }).eq("room_id", roomId).eq("uid", uid);
     return token;
   } catch { return null; }
 }

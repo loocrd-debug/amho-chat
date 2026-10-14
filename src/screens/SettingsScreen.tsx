@@ -6,8 +6,11 @@ import { Button, Eyebrow, Title, Muted, Chip } from "../components/ui";
 import { InviteSheet, JoinSheet } from "./InviteSheet";
 
 export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
-  const { settings, setSettings, burnAll, serverOn, partner, leave, error } = useStore();
+  const { settings, setSettings, burnAll, serverOn, serverCfg, setServer, clearServer, partner, leave, error } = useStore();
   const [name, setName] = useState(settings.name);
+  const [srvUrl, setSrvUrl] = useState(serverCfg?.url ?? "");
+  const [srvKey, setSrvKey] = useState(serverCfg?.key ?? "");
+  const [srvOpen, setSrvOpen] = useState(!serverOn);
   const [invite, setInvite] = useState(false);
   const [join, setJoin] = useState(false);
   const room = settings.room;
@@ -27,7 +30,7 @@ export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
           ) : (
             <>
               <Text style={[type.heading, { color: color.ink }]}>설정집을 넘길 사람</Text>
-              <Muted style={{ textAlign: "center", fontSize: 14, lineHeight: 20 }}>{serverOn ? "한 명이면 둘만의 방, 여러 명이면 작전팀이 돼요." : "서버 설정(.env)이 없어 지금은 연습 모드만 돼요."}</Muted>
+              <Muted style={{ textAlign: "center", fontSize: 14, lineHeight: 20 }}>{serverOn ? "한 명이면 둘만의 방, 여러 명이면 작전팀이 돼요." : "아래 \"서버 연결\"에 주소와 키를 넣으면 초대가 켜져요. 지금은 연습 모드."}</Muted>
             </>
           )}
         </View>
@@ -43,6 +46,21 @@ export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
           </View>
         )}
         {error && <Muted style={{ color: color.danger }}>{error}</Muted>}
+
+        <Eyebrow>서버 연결</Eyebrow>
+        {serverOn && !srvOpen ? (
+          <View style={s.row}><View style={{ flex: 1 }}><Text style={[type.body, { color: color.ink }]}>연결됨</Text><Muted>{serverCfg?.url}</Muted></View><Button label="바꾸기" variant="ghost" onPress={() => setSrvOpen(true)} style={{ height: 40 }} /></View>
+        ) : (
+          <View style={{ gap: 8 }}>
+            <Muted>Supabase 대시보드 상단 Connect 버튼 → .env.local 칸의 복사 아이콘을 누른 뒤, 아래 아무 칸에나 통째로 붙여넣고 연결을 누르면 돼요.</Muted>
+            <TextInput value={srvUrl} onChangeText={setSrvUrl} autoCapitalize="none" autoCorrect={false} placeholder="https://xxxx.supabase.co" placeholderTextColor={color.inkFaint} style={s.input} />
+            <TextInput value={srvKey} onChangeText={setSrvKey} autoCapitalize="none" autoCorrect={false} placeholder="sb_publishable_... 또는 eyJ... (anon)" placeholderTextColor={color.inkFaint} style={s.input} secureTextEntry />
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Button label="연결" onPress={() => setServer(srvUrl, srvKey).then(() => { setSrvOpen(false); onToast("서버에 연결했어요"); }).catch((e) => onToast(e.message))} style={{ flex: 1, height: 44 }} />
+              {serverOn && <Button label="끊기" variant="danger" onPress={() => clearServer().then(() => { setSrvUrl(""); setSrvKey(""); onToast("서버 연결을 끊었어요"); })} style={{ height: 44 }} />}
+            </View>
+          </View>
+        )}
 
         <Eyebrow>내 이름</Eyebrow>
         <View style={{ flexDirection: "row", gap: 8 }}>

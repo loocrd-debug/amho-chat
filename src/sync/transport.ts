@@ -3,7 +3,7 @@
 //  - SupabaseTransport: 실제 파트너. 코드는 그대로, 귓속말은 암호화해서 보낸다.
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import type { Message } from "../lib/types";
-import { supabase } from "./supabase";
+import { supabase as sb } from "./supabase";
 import { seal, open, randomId } from "./crypto";
 import { TTL_MS } from "../theme";
 
@@ -50,8 +50,8 @@ export class SupabaseTransport implements Transport {
   private seen = new Set<string>();
 
   constructor(private roomId: string, private key: string, private uid: string, name: string) {
-    if (!supabase) throw new Error("서버 설정이 없어요 (.env 확인)");
-    this.ch = supabase.channel("room:" + roomId, { config: { presence: { key: uid }, broadcast: { self: false } } });
+    if (!sb()) throw new Error("서버 설정이 없어요 (설정 탭에서 서버 주소와 키 입력)");
+    this.ch = sb()!.channel("room:" + roomId, { config: { presence: { key: uid }, broadcast: { self: false } } });
     this.ch
       .on("broadcast", { event: "signal" }, ({ payload }) => this.deliver(payload))
       .on("presence", { event: "sync" }, () => {
@@ -77,19 +77,19 @@ export class SupabaseTransport implements Transport {
   }
   private async backfill() {
     const since = new Date(Date.now() - TTL_MS).toISOString();
-    const { data } = await supabase!.from("signals").select("*").eq("room_id", this.roomId).neq("from_uid", this.uid).gt("created_at", since).order("created_at");
+    const { data, error } = await sb()!.from("signals").select("*").eq("room_id", this.roomId).neq("from_uid", this.uid).gt("created_at", since).order("created_at");
+    if (error) return; // 테이블이 없으면(SQL 전) 실시간 중계만 쓴다
     (data ?? []).forEach((r) => this.deliver(r));
-    if (data?.length) await supabase!.from("signals").delete().in("id", data.map((r) => r.id)); // 받았으니 서버에서 소멸
+    if (data?.length) await sb()!.from("signals").delete().in("id", data.map((r) => r.id)); // 받았으니 서버에서 소멸
   }
 
   async send(msg: Outgoing) {
     const id = randomId(12);
     const row = { id, room_id: this.roomId, from_uid: this.uid, kind: msg.type, payload: msg.type === "code" ? msg.key : seal(msg.text, this.key) };
     await this.ch.send({ type: "broadcast", event: "signal", payload: { ...row, at: Date.now() } });
-    const { error } = await supabase!.from("signals").insert(row);
-    if (error) throw new Error(error.message);
+    await sb()!.from("signals").insert(row).then(() => {}, () => {}); // 테이블이 없으면 실시간 중계만
   }
   onMessage(cb: (m: Message) => void) { this.msgL.add(cb); return () => { this.msgL.delete(cb); }; }
   onPresence(cb: (o: { uid: string; name: string }[]) => void) { this.preL.add(cb); return () => { this.preL.delete(cb); }; }
-  close() { supabase?.removeChannel(this.ch); }
+  close() { sb()?.removeChannel(this.ch); }
 }
