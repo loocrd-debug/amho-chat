@@ -27,6 +27,7 @@ export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
             <>
               <Text style={[type.heading, { color: color.ink }]}>{partner ? `${partner.name}와 접선 중` : "파트너를 기다리는 중"}</Text>
               <Chip live={!!partner}>{partner ? "접선 중" : "아직 안 들어옴"}</Chip>
+              <Muted>{`방 번호 ${room.id.slice(-4)} · 상대 화면에도 같은 번호여야 해요`}</Muted>
               <Muted style={{ textAlign: "center" }}>아래 버튼으로 링크를 복사해 카톡으로 보내세요. 상대가 열고 이름을 적으면 여기 이름이 떠요.</Muted>
             </>
           ) : (

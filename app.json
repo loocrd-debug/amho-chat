@@ -63,6 +63,9 @@
       "bundler": "metro",
       "output": "single",
       "favicon": "./assets/mascot/cat-flat.png"
+    },
+    "experiments": {
+      "baseUrl": "/amho-chat"
     }
   }
 }

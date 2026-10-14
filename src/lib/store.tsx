@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import * as Linking from "expo-linking";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { storage, uid as mkId } from "./storage";
 import { LocalTransport, SupabaseTransport, type Transport } from "../sync/transport";
 import { serverReady, loadServerConfig, saveServerConfig, clearServerConfig, getServerConfig } from "../sync/supabase";
@@ -46,6 +47,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [partner, setPartner] = useState<{ uid: string; name: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [serverTick, setServerTick] = useState(0);
+  const [inviteChecked, setInviteChecked] = useState(false);
+  const pendingInvite = useRef<string | null>(null);
   const codesRef = useRef(codes); codesRef.current = codes;
   const tRef = useRef<Transport | null>(null);
   const catRef = useRef<LocalTransport | null>(null); // 고양이 요원은 항상 대기
@@ -110,20 +113,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
   }
 
-  // 초대 링크로 열렸을 때
+  // 초대 링크로 열렸을 때: 설정을 다 불러온 뒤(ready)에 처리해야 저장된 설정이 덮어쓰지 않는다
   useEffect(() => {
-    const handle = async (url: string | null) => { if (url) await joinByLink(url); };
-    Linking.getInitialURL().then(handle);
-    if (typeof window !== "undefined" && window.location?.hash?.startsWith("#j-")) { const h = window.location.hash.slice(1); handle(h); try { window.history.replaceState(null, "", window.location.pathname); } catch {} }
-    const sub = Linking.addEventListener("url", (e) => handle(e.url));
+    if (!ready) return;
+    (async () => {
+      let token: string | null = null;
+      try { token = (await AsyncStorage.getItem("amho.pendingInvite")) || null; } catch {}
+      if (typeof window !== "undefined" && window.location?.hash?.startsWith("#j-")) { token = window.location.hash.slice(1); try { window.history.replaceState(null, "", window.location.pathname); } catch {} }
+      const initial = await Linking.getInitialURL().catch(() => null);
+      if (!token && initial && parseInvite(initial)) token = initial;
+      if (token) { pendingInvite.current = token; await joinByLink(token); try { await AsyncStorage.removeItem("amho.pendingInvite"); } catch {} }
+      setInviteChecked(true);
+    })();
+    const sub = Linking.addEventListener("url", (e) => { joinByLink(e.url); });
     return () => sub.remove();
-  }, [settings.uid, settings.name]);
+  }, [ready]);
 
   // 서버가 켜져 있는데 방이 없으면 자동으로 내 방을 만든다 (초대 링크가 항상 준비되도록)
   useEffect(() => {
-    if (!ready || !settings.name || settings.room || !serverReady()) return;
+    if (!ready || !inviteChecked || !settings.name || settings.room || !serverReady()) return;
     createRoom(settings.uid, settings.name).then((room) => setS((s) => (s.room ? s : { ...s, room }))).catch(() => {});
-  }, [ready, settings.name, settings.room?.id, serverTick]);
+  }, [ready, inviteChecked, settings.name, settings.room?.id, serverTick]);
 
   // 10분 소멸
   useEffect(() => { const t = setInterval(() => setMsgs((p) => p.filter((x) => Date.now() - x.at < TTL_MS)), 15000); return () => clearInterval(t); }, []);
@@ -136,6 +146,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const joinByLink = async (url: string) => {
     const room = parseInvite(url); if (!room) return false;
+    if (settings.room?.id === room.id) return true;
     try { await joinRoom(room, settings.uid, settings.name || "요원"); setS((s) => ({ ...s, room })); setError(null); return true; } catch (e: any) { setError(e.message); return false; }
   };
 
