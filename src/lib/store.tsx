@@ -93,7 +93,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
     const u3 = t.onBook(applyBook);
     return () => { u1(); u2(); u3(); t.close(); };
-  }, [ready, settings.room?.id, settings.uid, serverTick]);
+  }, [ready, settings.room?.id, settings.uid, settings.name, serverTick]);
 
   // 설정집 동기화 규칙
   function applyBook(ev: BookEvent) {

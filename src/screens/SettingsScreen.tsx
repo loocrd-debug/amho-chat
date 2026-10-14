@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, Image, TextInput, StyleSheet, Alert, Switch } from "react-native";
 import { useStore } from "../lib/store";
 import { color, radius, space, type } from "../theme";
@@ -6,6 +6,8 @@ import { Button, Eyebrow, Title, Muted, Chip } from "../components/ui";
 import { InviteSheet, JoinSheet } from "./InviteSheet";
 import * as Clipboard from "expo-clipboard";
 import { inviteLink } from "../sync/invite";
+import { checkServer } from "../sync/supabase";
+import { APP_VERSION } from "../theme";
 
 export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
   const { settings, setSettings, burnAll, serverOn, serverCfg, setServer, clearServer, partner, leave, error } = useStore();
@@ -16,6 +18,8 @@ export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
   const [invite, setInvite] = useState(false);
   const [join, setJoin] = useState(false);
   const room = settings.room;
+  const [health, setHealth] = useState<{ ok: boolean; detail: string } | null>(null);
+  useEffect(() => { let on = true; setHealth(null); checkServer().then((h) => on && setHealth(h)); return () => { on = false; }; }, [serverOn, serverCfg?.key]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -56,7 +60,7 @@ export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
 
         <Eyebrow>서버 연결</Eyebrow>
         {serverOn && !srvOpen ? (
-          <View style={s.row}><View style={{ flex: 1 }}><Text style={[type.body, { color: color.ink }]}>연결됨</Text><Muted>{serverCfg?.url}</Muted></View><Button label="바꾸기" variant="ghost" onPress={() => setSrvOpen(true)} style={{ height: 40 }} /></View>
+          <View style={s.row}><View style={{ flex: 1 }}><Text style={[type.body, { color: color.ink }]}>{health ? (health.ok ? "연결됨 · " : "문제 있음 · ") + health.detail : "확인 중…"}</Text><Muted>{serverCfg?.url}</Muted></View><Button label="바꾸기" variant="ghost" onPress={() => setSrvOpen(true)} style={{ height: 40 }} /></View>
         ) : (
           <View style={{ gap: 8 }}>
             <Muted>Supabase 대시보드 상단 Connect 버튼 → .env.local 칸의 복사 아이콘을 누른 뒤, 아래 아무 칸에나 통째로 붙여넣고 연결을 누르면 돼요.</Muted>
@@ -82,7 +86,7 @@ export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
         <Row title="고양이 요원이 대신 답장" sub="방이 없을 때 코드를 보내면 고양이가 답해요" value={settings.catAgent} onChange={(v) => setSettings({ catAgent: v })} />
 
         <Button label="대화 전부 소멸" variant="danger" onPress={() => Alert.alert("대화 전부 소멸", "지금까지의 신호와 귓속말이 모두 사라져요.", [{ text: "나중에", style: "cancel" }, { text: "소멸", style: "destructive", onPress: () => { burnAll(); onToast("전부 소멸했어요"); } }])} style={{ marginTop: 8 }} />
-        <Muted style={{ textAlign: "center", fontSize: 11 }}>설정집과 뜻은 이 폰에만 저장돼요. 서버에는 숫자와 암호화된 귓속말만 10분 지나가요.</Muted>
+        <Muted style={{ textAlign: "center", fontSize: 11 }}>{`설정집과 뜻은 이 폰에만 저장돼요. 서버에는 숫자와 암호화된 귓속말만 10분 지나가요. · v${APP_VERSION}`}</Muted>
       </ScrollView>
       <InviteSheet open={invite} onClose={() => setInvite(false)} onToast={onToast} />
       <JoinSheet open={join} onClose={() => setJoin(false)} onToast={onToast} />
@@ -104,6 +108,6 @@ const s = StyleSheet.create({
   list: { paddingHorizontal: space.s5, paddingVertical: 12, gap: 12 },
   center: { alignItems: "center", gap: 12, paddingVertical: 16 },
   hero: { width: 160, height: 160, borderRadius: radius.lg },
-  input: { flex: 1, height: 44, borderWidth: 1, borderColor: color.line200, borderRadius: radius.md, backgroundColor: color.bg100, color: color.ink, paddingHorizontal: 14, ...type.body },
+  input: { flex: 1, minWidth: 0, height: 44, borderWidth: 1, borderColor: color.line200, borderRadius: radius.md, backgroundColor: color.bg100, color: color.ink, paddingHorizontal: 14, ...type.body },
   row: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: color.bg100, borderRadius: radius.md, padding: 12 },
 });

@@ -84,6 +84,6 @@ const s = StyleSheet.create({
   pad: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   padKey: { width: "15%", height: 44, borderWidth: 1, borderColor: color.line200, borderRadius: radius.sm, backgroundColor: color.bg000, alignItems: "center", justifyContent: "center" },
   preview: { width: 48, height: 48, borderRadius: 12, backgroundColor: color.bg200, alignItems: "center", justifyContent: "center" },
-  input: { flex: 1, height: 50, borderWidth: 1, borderColor: color.line200, borderRadius: radius.md, backgroundColor: color.bg000, color: color.ink, paddingHorizontal: 14, ...type.body },
+  input: { flex: 1, minWidth: 0, height: 50, borderWidth: 1, borderColor: color.line200, borderRadius: radius.md, backgroundColor: color.bg000, color: color.ink, paddingHorizontal: 14, ...type.body },
   plan: { flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 1, borderColor: color.line200, borderRadius: 16, backgroundColor: color.bg000, padding: 14 },
 });

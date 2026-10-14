@@ -75,5 +75,5 @@ const s = StyleSheet.create({
   qr: { alignSelf: "center", width: 220, height: 220, borderRadius: radius.lg, backgroundColor: color.ink, alignItems: "center", justifyContent: "center" },
   code: { ...type.title, fontSize: 32, letterSpacing: 4, color: color.ink },
   cam: { height: 220, borderRadius: radius.lg, overflow: "hidden", backgroundColor: color.bg000 },
-  input: { flex: 1, height: 50, borderWidth: 1, borderColor: color.line200, borderRadius: radius.md, backgroundColor: color.bg000, color: color.ink, paddingHorizontal: 14, ...type.codeLg, letterSpacing: 6, textAlign: "center" },
+  input: { flex: 1, minWidth: 0, height: 50, borderWidth: 1, borderColor: color.line200, borderRadius: radius.md, backgroundColor: color.bg000, color: color.ink, paddingHorizontal: 14, ...type.codeLg, letterSpacing: 6, textAlign: "center" },
 });

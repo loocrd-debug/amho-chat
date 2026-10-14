@@ -71,7 +71,7 @@ const s = StyleSheet.create({
   sys: { ...type.micro, color: color.inkFaint, alignSelf: "center", letterSpacing: 1 },
   row: { flexDirection: "row", alignItems: "flex-end" },
   input: { gap: 10, paddingHorizontal: space.s4, paddingVertical: 10, borderTopWidth: 1, borderTopColor: color.line100 },
-  ibtn: { width: 50, height: 50, borderWidth: 1, borderColor: color.line200, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
-  field: { flex: 1, height: 50, borderWidth: 1, borderColor: color.line200, borderRadius: radius.md, backgroundColor: color.bg100, color: color.ink, paddingHorizontal: 14, ...type.body, fontSize: 14 },
+  ibtn: { width: 50, height: 50, flexShrink: 0, borderWidth: 1, borderColor: color.line200, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
+  field: { flex: 1, minWidth: 0, height: 50, borderWidth: 1, borderColor: color.line200, borderRadius: radius.md, backgroundColor: color.bg100, color: color.ink, paddingHorizontal: 14, ...type.body, fontSize: 14 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
 });
