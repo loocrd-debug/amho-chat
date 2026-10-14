@@ -2,6 +2,7 @@
 //  - QR / 링크: amho://join?r=<room>&k=<key>  → 서버가 키를 전혀 보지 않는다
 //  - 6자리 코드: invites 테이블에 10분만 맡긴다 → 편하지만 그 10분은 서버가 키를 안다 (설정에 명시)
 import * as Linking from "expo-linking";
+import { Platform } from "react-native";
 import { supabase as sb } from "./supabase";
 import { newKey, randomId } from "./crypto";
 
@@ -16,10 +17,20 @@ export async function createRoom(uid: string, name: string): Promise<Room> {
   return room;
 }
 
-export const inviteLink = (room: Room) => Linking.createURL("join", { queryParams: { r: room.id, k: room.key } });
+// 초대 토큰: j-<방ID 12자>-<키 base64url 43자>. 웹에서는 주소 뒤 #토큰으로 붙는다.
+const b64url = (b64: string) => b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const b64std = (u: string) => u.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - (u.length % 4)) % 4);
+export const inviteToken = (room: Room) => `j-${room.id}-${b64url(room.key)}`;
 
-export function parseInvite(url: string): Room | null {
-  try { const { queryParams, path } = Linking.parse(url); if (!path?.endsWith("join")) return null;
+export const inviteLink = (room: Room) =>
+  Platform.OS === "web" && typeof window !== "undefined"
+    ? `${window.location.origin}${window.location.pathname}#${inviteToken(room)}`
+    : Linking.createURL("join", { queryParams: { r: room.id, k: room.key } });
+
+export function parseInvite(text: string): Room | null {
+  const m = text.match(/j-([A-Z2-9]{12})-([A-Za-z0-9_-]{43})/);
+  if (m) return { id: m[1], key: b64std(m[2]) };
+  try { const { queryParams, path } = Linking.parse(text); if (!path?.endsWith("join")) return null;
     const r = String(queryParams?.r ?? ""), k = String(queryParams?.k ?? ""); return r && k ? { id: r, key: k } : null; } catch { return null; }
 }
 

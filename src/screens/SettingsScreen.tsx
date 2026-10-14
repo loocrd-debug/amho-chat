@@ -4,6 +4,8 @@ import { useStore } from "../lib/store";
 import { color, radius, space, type } from "../theme";
 import { Button, Eyebrow, Title, Muted, Chip } from "../components/ui";
 import { InviteSheet, JoinSheet } from "./InviteSheet";
+import * as Clipboard from "expo-clipboard";
+import { inviteLink } from "../sync/invite";
 
 export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
   const { settings, setSettings, burnAll, serverOn, serverCfg, setServer, clearServer, partner, leave, error } = useStore();
@@ -25,7 +27,7 @@ export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
             <>
               <Text style={[type.heading, { color: color.ink }]}>{partner ? `${partner.name}와 접선 중` : "파트너를 기다리는 중"}</Text>
               <Chip live={!!partner}>{partner ? "접선 중" : "아직 안 들어옴"}</Chip>
-              <Muted style={{ textAlign: "center" }}>상대가 초대를 열면 여기 이름이 떠요.</Muted>
+              <Muted style={{ textAlign: "center" }}>아래 버튼으로 링크를 복사해 카톡으로 보내세요. 상대가 열고 이름을 적으면 여기 이름이 떠요.</Muted>
             </>
           ) : (
             <>
@@ -36,7 +38,11 @@ export function SettingsScreen({ onToast }: { onToast: (t: string) => void }) {
         </View>
         {room ? (
           <View style={{ gap: 8 }}>
-            <Button label="초대 다시 보기" variant="ghost" onPress={() => setInvite(true)} />
+            {!partner && <Button label="내 초대 링크 복사 → 카톡에 붙여넣기" onPress={async () => { await Clipboard.setStringAsync(inviteLink(room)); onToast("복사했어요. 카톡에 붙여넣어 보내세요"); }} style={{ height: 54 }} />}
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Button label="QR 보기" variant="ghost" onPress={() => setInvite(true)} style={{ flex: 1 }} />
+              <Button label="초대 받기" variant="ghost" onPress={() => setJoin(true)} style={{ flex: 1 }} />
+            </View>
             <Button label="방 나가기" variant="danger" onPress={() => Alert.alert("방 나가기", "이 방의 신호가 더 오지 않아요. 설정집은 폰에 남아요.", [{ text: "나중에", style: "cancel" }, { text: "나가기", style: "destructive", onPress: () => leave().then(() => onToast("방을 나왔어요")) }])} />
           </View>
         ) : (

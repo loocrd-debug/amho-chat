@@ -9,7 +9,7 @@ import { Button, Chip, Eyebrow, Title, Muted, Sheet } from "../components/ui";
 const CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export function CodebookScreen({ onToast }: { onToast: (t: string) => void }) {
-  const { codeList, codes, addCode, removeCode, settings, partner } = useStore();
+  const { codeList, codes, addCode, confirmCode, removeCode, settings, partner } = useStore();
   const [adding, setAdding] = useState(false);
   const [expand, setExpand] = useState(false);
   const [key, setKey] = useState("");
@@ -23,13 +23,13 @@ export function CodebookScreen({ onToast }: { onToast: (t: string) => void }) {
   return (
     <View style={{ flex: 1 }}>
       <View style={s.top}>
-        <View style={{ flex: 1, gap: 2 }}><Eyebrow>우리 설정집</Eyebrow><Title>{`${settings.name || "나"} × ${partner ? partner.name : settings.room ? "?" : settings.catAgent ? "고양이 요원" : "?"}`}</Title></View>
+        <View style={{ flex: 1, gap: 2 }}><Eyebrow>우리 설정집</Eyebrow><Title>{`${settings.name || "나"} × ${partner ? partner.name : settings.catAgent ? "고양이 요원" : "?"}`}</Title></View>
         <Chip>폰에만 저장</Chip>
       </View>
       <ScrollView contentContainerStyle={s.list}>
-        <View style={s.note}><Image source={require("../../assets/mascot/cat-flat.png")} style={s.noteImg} /><Text style={s.noteTxt}>코드를 탭하면 복사돼요. 카톡이나 문자에 붙여넣기만 하세요. 길게 누르면 지워요.</Text></View>
+        <View style={s.note}><Image source={require("../../assets/mascot/cat-flat.png")} style={s.noteImg} /><Text style={s.noteTxt}>{partner ? "코드를 만들면 상대 설정집에도 떠요. 상대가 확인하면 확정." : "코드를 탭하면 복사돼요. 카톡이나 문자에 붙여넣기만 하세요. 길게 누르면 지워요."}</Text></View>
         <View style={s.sub}><Muted>{`코드 ${codeList.length} / ${settings.slots}`}</Muted><Pressable onPress={() => setExpand(true)}><Text style={s.link}>칸 늘리기</Text></Pressable></View>
-        {codeList.map((c, i) => <CodeRow key={c.key} code={c.key} meaning={c.meaning} used={c.used} top={i === 0 && c.used > 0} onPress={() => copy(c.key)} onLongPress={() => del(c.key)} />)}
+        {codeList.map((c, i) => <CodeRow key={c.key} code={c.key} meaning={c.meaning} used={c.used} top={i === 0 && c.used > 0} status={c.status} byName={c.byName} onPress={() => copy(c.key)} onLongPress={() => del(c.key)} onConfirm={() => { confirmCode(c.key); onToast(`${c.key} = ${c.meaning} 확정`); }} />)}
         <Pressable onPress={() => (full ? setExpand(true) : setAdding(true))} style={s.empty}>
           <View style={s.emptyNum}><Text style={{ color: color.inkMuted, fontSize: 20 }}>+</Text></View>
           <Text style={[type.body, { color: color.inkMuted, fontSize: 14 }]}>새 코드 만들기</Text>

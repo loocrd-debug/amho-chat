@@ -2,7 +2,7 @@
 //  - LocalTransport   : 파트너가 없을 때 고양이 요원이 답장하는 연습 모드
 //  - SupabaseTransport: 실제 파트너. 코드는 그대로, 귓속말은 암호화해서 보낸다.
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import type { Message } from "../lib/types";
+import type { Message, BookEvent } from "../lib/types";
 import { supabase as sb } from "./supabase";
 import { seal, open, randomId } from "./crypto";
 import { TTL_MS } from "../theme";
@@ -14,6 +14,8 @@ export interface Transport {
   send(msg: Outgoing): Promise<void>;
   onMessage(cb: (msg: Message) => void): () => void;
   onPresence(cb: (others: { uid: string; name: string }[]) => void): () => void;
+  sendBook(ev: BookEvent): Promise<void>;
+  onBook(cb: (ev: BookEvent) => void): () => void;
   close(): void;
 }
 
@@ -23,6 +25,11 @@ export class LocalTransport implements Transport {
   constructor(private codeKeys: () => string[]) {}
   onMessage(cb: (m: Message) => void) { this.listeners.add(cb); return () => { this.listeners.delete(cb); }; }
   onPresence(cb: (o: { uid: string; name: string }[]) => void) { cb([]); return () => {}; }
+  private bookL = new Set<(e: BookEvent) => void>();
+  onBook(cb: (e: BookEvent) => void) { this.bookL.add(cb); return () => { this.bookL.delete(cb); }; }
+  async sendBook(ev: BookEvent) {
+    if (ev.type === "propose") setTimeout(() => this.bookL.forEach((l) => l({ type: "confirm", key: ev.key, from: "cat" })), 800); // 고양이는 뭐든 확인해 준다
+  }
   close() {}
   async send(msg: Outgoing) {
     const keys = this.codeKeys();
@@ -47,6 +54,7 @@ export class SupabaseTransport implements Transport {
   private ch: RealtimeChannel;
   private msgL = new Set<(m: Message) => void>();
   private preL = new Set<(o: { uid: string; name: string }[]) => void>();
+  private bookL = new Set<(e: BookEvent) => void>();
   private seen = new Set<string>();
 
   constructor(private roomId: string, private key: string, private uid: string, name: string) {
@@ -54,6 +62,7 @@ export class SupabaseTransport implements Transport {
     this.ch = sb()!.channel("room:" + roomId, { config: { presence: { key: uid }, broadcast: { self: false } } });
     this.ch
       .on("broadcast", { event: "signal" }, ({ payload }) => this.deliver(payload))
+      .on("broadcast", { event: "book" }, ({ payload }) => this.deliverBook(payload))
       .on("presence", { event: "sync" }, () => {
         const state = this.ch.presenceState<{ name: string }>();
         const others = Object.entries(state).filter(([k]) => k !== uid).map(([k, v]) => ({ uid: k, name: v[0]?.name ?? "파트너" }));
@@ -81,6 +90,23 @@ export class SupabaseTransport implements Transport {
     if (error) return; // 테이블이 없으면(SQL 전) 실시간 중계만 쓴다
     (data ?? []).forEach((r) => this.deliver(r));
     if (data?.length) await sb()!.from("signals").delete().in("id", data.map((r) => r.id)); // 받았으니 서버에서 소멸
+  }
+
+  private deliverBook(p: any) {
+    if (!p || p.from === this.uid) return;
+    const dec = (t: string) => open(t, this.key) ?? "";
+    let ev: BookEvent | null = null;
+    if (p.type === "propose") ev = { type: "propose", key: p.key, meaning: dec(p.meaning), from: p.from, name: p.name };
+    else if (p.type === "confirm" || p.type === "delete") ev = { type: p.type, key: p.key, from: p.from };
+    else if (p.type === "sync") ev = { type: "sync", from: p.from, name: p.name, codes: (p.codes ?? []).map((c: any) => ({ key: c.key, meaning: dec(c.meaning), status: c.status })) };
+    if (ev) this.bookL.forEach((l) => l(ev!));
+  }
+  onBook(cb: (e: BookEvent) => void) { this.bookL.add(cb); return () => { this.bookL.delete(cb); }; }
+  async sendBook(ev: BookEvent) {
+    const enc = (t: string) => seal(t, this.key);
+    const payload: any = ev.type === "propose" ? { ...ev, meaning: enc(ev.meaning) }
+      : ev.type === "sync" ? { ...ev, codes: ev.codes.map((c) => ({ ...c, meaning: enc(c.meaning) })) } : ev;
+    await this.ch.send({ type: "broadcast", event: "book", payload });
   }
 
   async send(msg: Outgoing) {

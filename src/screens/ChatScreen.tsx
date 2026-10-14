@@ -13,9 +13,9 @@ export function ChatScreen() {
   const [all, setAll] = useState(false);
   const scroll = useRef<ScrollView>(null);
   useEffect(() => { scroll.current?.scrollToEnd({ animated: true }); }, [msgs.length]);
-  const live = !!partner || (!settings.room && settings.catAgent);
-  const partnerName = partner ? partner.name : settings.room ? "파트너를 기다리는 중" : settings.catAgent ? "고양이 요원 (연습)" : "방이 없어요";
-  const status = partner ? "접선 중" : settings.room ? "자리 비움" : settings.catAgent ? "연습 중" : "접선 전";
+  const live = !!partner || settings.catAgent;
+  const partnerName = partner ? partner.name : settings.catAgent ? "고양이 요원 (연습)" : settings.room ? "파트너를 기다리는 중" : "방이 없어요";
+  const status = partner ? "접선 중" : settings.catAgent ? "연습 중 · 파트너 오면 자동 교대" : settings.room ? "자리 비움" : "접선 전";
 
   return (
     <View style={{ flex: 1 }}>

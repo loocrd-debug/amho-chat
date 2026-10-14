@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, Pressable, Share, StyleSheet } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
+import * as Clipboard from "expo-clipboard";
 import QRCode from "react-native-qrcode-svg";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useStore } from "../lib/store";
@@ -20,9 +21,13 @@ export function InviteSheet({ open, onClose, onToast }: { open: boolean; onClose
   return (
     <Sheet open={open} onClose={onClose}>
       <Text style={[type.heading, { color: color.ink }]}>설정집을 넘길 사람</Text>
-      <Muted>QR을 찍거나 링크를 열면 바로 같은 방이에요. 뜻은 서버를 거치지 않아요.</Muted>
+      <Muted>상대가 이 링크를 열고 이름만 적으면 같은 방이에요. 뜻은 서버를 거치지 않아요.</Muted>
       <View style={s.qr}>{room ? <QRCode value={link} size={188} backgroundColor={color.ink} color={color.bg000} /> : <Muted>{busy ? "방을 만드는 중" : "서버 설정이 필요해요"}</Muted>}</View>
-      <Button label="카톡으로 초대 링크 보내기" onPress={() => room && Share.share({ message: `암호쳇 초대. 아무도 모르게.\n${link}` })} disabled={!room} style={{ height: 54 }} />
+      <View style={{ gap: 8 }}>
+        <Eyebrow>내 초대 링크</Eyebrow>
+        <Text selectable numberOfLines={2} style={[type.caption, { color: color.inkMuted }]}>{link || "준비 중"}</Text>
+        <Button label="링크 복사 → 카톡에 붙여넣기" onPress={async () => { await Clipboard.setStringAsync(link); onToast("복사했어요. 카톡에 붙여넣어 보내세요"); }} disabled={!room} style={{ height: 54 }} />
+      </View>
       <View style={{ alignItems: "center", gap: 8 }}>
         <Muted>또는 6자리 코드 · 10분 동안만 · 1회용</Muted>
         {code ? <Text style={s.code}>{code.slice(0, 3)} {code.slice(3)}</Text>
@@ -39,6 +44,7 @@ export function JoinSheet({ open, onClose, onToast }: { open: boolean; onClose: 
   const { joinByLink, joinByCode } = useStore();
   const [perm, ask] = useCameraPermissions();
   const [code, setCode] = useState("");
+  const [link, setLink] = useState("");
   const [scanning, setScanning] = useState(false);
   const done = (ok: boolean) => { if (ok) { onToast("접선 완료. 같은 방이에요"); onClose(); } else onToast("초대를 찾지 못했어요"); };
 
@@ -50,6 +56,11 @@ export function JoinSheet({ open, onClose, onToast }: { open: boolean; onClose: 
       ) : (
         <Button label="QR 찍기" variant="ghost" onPress={async () => { const p = perm?.granted ? perm : await ask(); if (p?.granted) setScanning(true); else onToast("카메라 권한이 필요해요"); }} />
       )}
+      <Eyebrow>초대 링크 붙여넣기</Eyebrow>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        <TextInput value={link} onChangeText={setLink} autoCapitalize="none" autoCorrect={false} placeholder="받은 초대 링크를 통째로 붙여넣기" placeholderTextColor={color.inkFaint} style={[s.input, { letterSpacing: 0, textAlign: "left", fontSize: 13 }]} />
+        <Button label="접선" onPress={() => joinByLink(link).then(done)} disabled={link.length < 20} />
+      </View>
       <Eyebrow>또는 6자리 코드</Eyebrow>
       <View style={{ flexDirection: "row", gap: 8 }}>
         <TextInput value={code} onChangeText={(v) => setCode(v.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" placeholder="000000" placeholderTextColor={color.inkFaint} style={s.input} maxLength={6} />
